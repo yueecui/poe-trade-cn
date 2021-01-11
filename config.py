@@ -18,11 +18,14 @@ def load_config():
 
     result_config = {
         'league': cfg.get('GENERAL', 'league', fallback=''),
-        'sleep_time': cfg.getint('GENERAL', 'sleep_time', fallback=10),
         'file_type': cfg.get('GENERAL', 'file_type', fallback='xlsx'),
         'save_cache': cfg.getboolean('GENERAL', 'save_cache', fallback=True),
         'load_cache': cfg.getboolean('GENERAL', 'load_cache', fallback=False),
         'split_mods': cfg.getboolean('GENERAL', 'split_mods', fallback=False),
+
+        'sleep_time': cfg.getint('PARAMS', 'sleep_time', fallback=3),
+        'retry_time': cfg.getint('PARAMS', 'retry_time', fallback=5),
+        'query_number_per_page': cfg.getint('PARAMS', 'query_number_per_page', fallback=10),
     }
 
     if result_config['file_type'] != 'csv':
