@@ -3,7 +3,8 @@ from util.danteng_excel import read_all_sheets_from_xlsx
 
 class TradeConfig:
     def __init__(self, filter_file_path):
-        self._config = None
+        self._query_config = None
+        self._header_config = None
 
         self.read_trade_config(filter_file_path)
 
@@ -30,18 +31,23 @@ class TradeConfig:
                 if flag and type(flag) == str:
                     flag = flag.lower() in ['1', '是', 'yes', 'true']
                 config['启用'] = bool(flag)
+        self._query_config = query_setting['data']
 
-        trade_config = {
-            'query': query_setting['data'],
-            'header': header_setting['data']
-        }
-
-        self._config = trade_config
+        for name, group in header_setting['data'].items():
+            for config in group:
+                config['模式'] = config.get('模式') or 0
+                if type(config['模式']) != int or config['模式'] > 3:
+                    config['模式'] = 0
+                config['列表'] = (config.get('列表') or '').replace('，', ',').split(',')
+        self._header_config = header_setting['data']
 
     def is_ready(self):
-        return not (self._config is None)
+        return not (self._query_config is None)
 
     def __iter__(self):
-        for _, group in self._config['query'].items():
+        for _, group in self._query_config.items():
             for config in group:
                 yield config
+
+    def get_header_config(self):
+        return self._header_config

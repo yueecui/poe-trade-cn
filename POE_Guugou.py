@@ -21,8 +21,40 @@ def run():
 
     # 下载数据
     if len(filter_name_list) == 0:
-        filter_name_list = os.listdir(cfg['filter_path'])
+        generate_bat(cfg)
+    else:
+        find_trade_info(cfg, filter_name_list)
 
+
+# 生成执行用的BAT
+def generate_bat(cfg):
+    root_file_list = os.listdir()
+    for bat_name in root_file_list:
+        (file_name, file_type) = os.path.splitext(bat_name)
+        bat_file_path = os.path.join(bat_name)
+        if file_type == '.bat' and (not os.path.isdir(bat_file_path)) and os.path.exists(bat_file_path):
+            os.remove(bat_file_path)
+
+    filter_name_list = os.listdir(cfg['filter_path'])
+    exe_name = os.path.split(sys.argv[0])[1]
+    count = 0
+    for filter_name in filter_name_list:
+        (file_name, file_type) = os.path.splitext(filter_name)
+        filter_file_path = os.path.join(cfg['filter_path'], filter_name)
+        if file_type != '.xlsx' or os.path.isdir(filter_file_path) or not os.path.exists(filter_file_path):
+            continue
+        bat_file_path = os.path.join(f'run_{file_name}.bat')
+        with open(bat_file_path, 'w') as f:
+            f.write(f'@{exe_name} "{file_name}"\n@pause')
+        count += 1
+
+    if count > 0:
+        print(f'生成可执行bat文件完成！共生成{count}个')
+    else:
+        print(f'没有在{cfg["filter_path"]}目录中找到可用的过滤器，请先配置过滤器文件')
+
+
+def find_trade_info(cfg, filter_name_list):
     for filter_name in filter_name_list:
         (file_name, file_type) = os.path.splitext(filter_name)
         if file_type == '':
@@ -56,63 +88,47 @@ def run():
                 'goods': goods_data
             }, data_cache_path)
 
-        save_filter_result(filter_name, cfg)
+        data = {
+            'name': file_name,
+            'split_mods': cfg['split_mods'],
+            'file_type': cfg['file_type'],
+            'goods': goods_data
+        }
+
+        save_result(data, trade_config)
 
 
-def save_filter_result(filter_name, cfg):
-    print('===================================================')
-    print(f'=  开始检索过滤组【{filter_name}】')
-    print('===================================================')
-
-    filter_path = os.path.join(cfg['filter_path'], filter_name)
-    if not os.path.exists(filter_path) or not os.path.isdir(filter_path):
-        print('')
-        print(f'过滤组【{filter_name}】目录不存在，请检查')
-        print('')
-        return False
-    z = 1
-    if cfg['load_cache']:
-        goods_data = load_json(CACHE_PATH)
-        goods_data.update(load_filter_config(filter_path))
-    else:
-        goods_data = query_goods_data(cfg, filter_path)
-
-    if cfg['save_cache']:
-        save_json(goods_data, CACHE_PATH)
-
-    # 添加配置字段
-    goods_data['config'] = {
-        'split_mods': cfg['split_mods']
-    }
-
+def save_result(data, trade_config):
     # 保存数据
     # 超过1000条用csv
-    if cfg['file_type'] == 'xlsx':
+    if data['file_type'] == 'xlsx':
         try:
-            goods_data_save_to_table(goods_data, filter_name, 'xlsx')
+            goods_data_save_to_table(data, trade_config, 'xlsx')
         except Exception as e:
             print('')
             print('★ 保存成Excel时出错，尝试改用CSV输出')
             print('')
-            goods_data_save_to_table(goods_data, filter_name, 'csv')
+            goods_data_save_to_table(data, trade_config, 'csv')
     else:
-        goods_data_save_to_table(goods_data, filter_name, 'csv')
+        goods_data_save_to_table(data, trade_config, 'csv')
 
-    print(f'◆过滤器【{filter_name}】内容保存完毕')
+    print(f'◆过滤器【{data["name"]}】内容保存完毕')
     print('')
     return True
 
 
-
-def goods_data_save_to_table(goods_data, filter_name, file_format):
+def goods_data_save_to_table(data, trade_config, file_format):
+    filter_name = data["name"]
     headers = {
         filter_name: []
     }
     contents = {
         filter_name: {}
     }
-    output_filter = goods_data['output_filter']
+    header_config = trade_config.get_header_config()
 
+    # 通过过滤器添加的header
+    filter_header = []
     # 通过type=filter添加的header
     extra_header = []
 
@@ -122,7 +138,7 @@ def goods_data_save_to_table(goods_data, filter_name, file_format):
     has_implicit = False
     has_crafted = False
     has_dps = False
-    for goods_hash, goods_info in goods_data['goods'].items():
+    for goods_hash, goods_info in data['goods'].items():
         temp_goods_info = {
             'name': goods_info['item']['name'],
             'basetype': goods_info['item']['typeLine'],
@@ -167,28 +183,33 @@ def goods_data_save_to_table(goods_data, filter_name, file_format):
             if mod_type not in goods_info['item']:
                 continue
             for mod_str in goods_info['item'][mod_type]:
-                for filter_info in output_filter:
-                    find = re.findall(filter_info['regex'], mod_str, re.S)
-                    if find:
-                        filter_type = filter_info.get('type') if filter_info.get('type') else 'sum'
-                        if filter_type in ['overwrite', 'str']:
-                            temp_goods_info[filter_info['name']] = find[0]
-                        elif filter_type == 'filter':
-                            ignore_list = filter_info.get('ignore') if filter_info.get('ignore') else []
-                            if find[0] not in ignore_list:
-                                if find[0] not in extra_header:
-                                    extra_header.append(find[0])
-                                if find[0] not in temp_goods_info:
-                                    temp_goods_info[find[0]] = 0
-                                temp_goods_info[find[0]] = temp_goods_info[find[0]] + 1
-                        else:
-                            if filter_info['name'] not in temp_goods_info:
-                                temp_goods_info[filter_info['name']] = 0
-                            temp_goods_info[filter_info['name']] = temp_goods_info[filter_info['name']] + int(find[0])
-                    # found_mod.append(mod_str)
-        # temp_goods_info['other'] = '\r\n'.join(list(set(goods_info['item']['explicitMods']).difference(set(found_mod))))
+                for header, filter_group in header_config.items():
+                    for filter_set in filter_group:
+                        find = re.findall(filter_set['正则表达式'], mod_str, re.S)
+                        if find:
+                            # 记录header
+                            if filter_set['模式'] != 2:
+                                if header not in filter_header:
+                                    filter_header.append(header)
 
-        if goods_data['config']['split_mods']:
+                            # 覆盖数值模式
+                            if filter_set['模式'] == 1:
+                                temp_goods_info[header] = find[0]
+                            # 计数模式（珠宝附带技能）
+                            elif filter_set['模式'] == 2 or filter_set['模式'] == 3:
+                                if (filter_set['模式'] == 2 and find[0] not in filter_set['列表']) or (filter_set['模式'] == 3 and find[0] in filter_set['列表']):
+                                    if find[0] not in extra_header:
+                                        extra_header.append(find[0])
+                                    if find[0] not in temp_goods_info:
+                                        temp_goods_info[find[0]] = 0
+                                    temp_goods_info[find[0]] = temp_goods_info[find[0]] + 1
+                            # 默认：累加模式
+                            else:
+                                if header not in temp_goods_info:
+                                    temp_goods_info[header] = 0
+                                temp_goods_info[header] = temp_goods_info[header] + int(find[0])
+
+        if data['split_mods']:
             prefix_mod_str_list = []
             suffix_mod_str_list = []
             if goods_info['item']['extended']['mods'].get('explicit'):
@@ -223,9 +244,9 @@ def goods_data_save_to_table(goods_data, filter_name, file_format):
     # 表头补充
     headers[filter_name].extend(['name', 'basetype', 'ilvl'])
     properties_list.sort()
-    for filter_info in output_filter:
-        if filter_info['name'] not in headers[filter_name] and filter_info.get('type') != 'filter':
-            headers[filter_name].append(filter_info['name'])
+    for header_name in filter_header:
+        if header_name not in headers[filter_name]:
+            headers[filter_name].append(header_name)
     for header_name in extra_header:
         if header_name not in headers[filter_name]:
             headers[filter_name].append(header_name)
@@ -238,7 +259,7 @@ def goods_data_save_to_table(goods_data, filter_name, file_format):
     if has_implicit:
         headers[filter_name].append('implicit')
     headers[filter_name].append('explicit')
-    if goods_data['config']['split_mods']:
+    if data['split_mods']:
         headers[filter_name].extend(['prefix_mods', 'suffix_mods'])
     else:
         headers[filter_name].append('mods')

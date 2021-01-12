@@ -1,2 +1,0 @@
-@D:\Python37-32\Scripts\pyinstaller -c --onefile --version-file "version_info.py" --workpath "D:\Temp" --distpath "D:\Wiki\Temp" --path "D:\GitHub\yuee-lib" --icon="res\poe.ico" -y "poe_market.py"
-@pause

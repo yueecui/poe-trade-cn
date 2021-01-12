@@ -18,8 +18,6 @@ def read_app_config():
     result_config = {
         'league': cfg.get('GENERAL', 'league', fallback=''),
         'file_type': cfg.get('GENERAL', 'file_type', fallback='xlsx'),
-        'save_cache': cfg.getboolean('GENERAL', 'save_cache', fallback=True),
-        'load_cache': cfg.getboolean('GENERAL', 'load_cache', fallback=False),
         'cache_time': cfg.getint('GENERAL', 'cache_minute', fallback=10),
         'split_mods': cfg.getboolean('GENERAL', 'split_mods', fallback=False),
 
