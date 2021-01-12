@@ -3,8 +3,10 @@ import json
 import math
 import time
 import os
-from danteng_lib import save_json, load_json
+import re
+from util.danteng_lib import save_json, load_json
 
+BASE_URL = r'https://poe.game.qq.com/trade/search'
 LIST_API_URL = r'https://poe.game.qq.com/api/trade/search'
 EXCHANGE_API_URL = r'https://poe.game.qq.com/api/trade/exchange'
 TRADE_API_URL = r'https://poe.game.qq.com/api/trade/fetch'
@@ -16,10 +18,6 @@ QUERY_NUMBER_PRE_PAGE = 10
 SLEEP_TIME = 3
 RETRY_TIME = 5
 MAX_EXCHANGE_NUMBER = 50
-
-EXCHANGE_MAP = {
-    '地图': 'map',
-}
 
 
 class PoeTradeCN:
@@ -127,10 +125,6 @@ class PoeTradeCN:
                 item_data[item_info['id']] = item_info
         return item_data
 
-    # 获取兑换页价格数据
-    def query_exchange_data(self, exchange_type):
-        return eval(f'self._query_exchange_{EXCHANGE_MAP[exchange_type]}_data()')
-
     # 获取地图价格数据
     def _query_exchange_map_data(self):
         static_data = get_data('static')
@@ -181,10 +175,51 @@ class PoeTradeCN:
                 time.sleep(self._retry_time)
         return json.loads(response.text)
 
+    # 请求
+    def _get_code_html(self, code):
+        url = f'{BASE_URL}/{self._league_name}/{code}'
+        count = 0
+        while True:
+            try:
+                response = requests.get(url, timeout=45)
+                time.sleep(self._sleep_time)
+                if response.status_code == 200:
+                    break
+                else:
+                    count += 1
+                    self._log(f'获取{url}时，网络出错（{response.status_code}）（第{count}次），{self._retry_time}秒后重试！')
+                    time.sleep(self._retry_time)
+                break
+            except Exception as e:  # 超时重新下载
+                count += 1
+                self._log(f'获取{url}时出错（第{count}次），{self._retry_time}秒后重试！')
+                time.sleep(self._retry_time)
+        return response.text
+
     # 获取总数据
     def get_result(self):
         return self._trade_data
 
+    # 根据code获得配置
+    def query_config_from_code(self, code):
+        html = self._get_code_html(code)
+
+        find = re.findall(r'require\(\["main"], function\(\)\{require\(\["trade"], function\(t\)\{    t\((.*?)\);}\);}\);', html)
+        if find:
+            data_json = json.loads(find[0])
+        else:
+            print(f'查找[{code}]数据失败，请检查')
+            return None
+
+        # 整理数据
+        result = {
+            'query': data_json['state'],
+            'sort': {
+                'price': 'asc'
+            }
+        }
+        result['query']['status'] = dict(option=result['query']['status'])
+        return result
 
 
 def get_data(data_type):
@@ -192,3 +227,5 @@ def get_data(data_type):
     # if not os.path.exists(data_json_path):
     #     init_data()
     return load_json(data_json_path)
+
+

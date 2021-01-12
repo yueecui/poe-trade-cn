@@ -113,7 +113,7 @@ def check_folder(file_path, mode=0):
 
 def get_root(file_path=None):
     if file_path is None:
-        file_path = '.'
+        file_path = '..'
     me = os.path.abspath(file_path)
     drive, path = os.path.splitdrive(me)
     if not drive:
