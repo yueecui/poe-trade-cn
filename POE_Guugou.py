@@ -84,7 +84,7 @@ def find_trade_info(cfg, filter_name_list):
         else:
             goods_data = query_goods_data(cfg, trade_config)
             save_json({
-                'time': timestamp,
+                'time': int(time.time()),
                 'goods': goods_data
             }, data_cache_path)
 
@@ -185,13 +185,13 @@ def goods_data_save_to_table(data, trade_config, file_format):
             for mod_str in goods_info['item'][mod_type]:
                 for header, filter_group in header_config.items():
                     for filter_set in filter_group:
+                        # 记录header
+                        if filter_set['模式'] < 2:
+                            if header not in filter_header:
+                                filter_header.append(header)
+
                         find = re.findall(filter_set['正则表达式'], mod_str, re.S)
                         if find:
-                            # 记录header
-                            if filter_set['模式'] != 2:
-                                if header not in filter_header:
-                                    filter_header.append(header)
-
                             # 覆盖数值模式
                             if filter_set['模式'] == 1:
                                 temp_goods_info[header] = find[0]
