@@ -10,6 +10,8 @@ def query_goods_data(cfg, trade_config):
                      query_number_per_page=cfg['query_number_per_page'])
 
     for config in trade_config:
+        if not config['启用']:
+            continue
         filter_json = read_trade_config_json(poe_trade, cfg, config)
         auto_mode = config['模式']
         filter_json['name'] = config['名称']
