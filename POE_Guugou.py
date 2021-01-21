@@ -267,7 +267,7 @@ def goods_data_save_to_table(data, trade_config, file_format):
         headers[filter_name].append('crafted')
     headers[filter_name].extend(['influences', 'corrupted', 'currency', 'amount', 'note', 'seller', 'whisper'])
 
-    save_path = f'{filter_name}.{file_format}'
+    save_path = f'result_{filter_name}.{file_format}'
     if file_format == 'csv':
         save_to_csv(contents[filter_name], headers[filter_name], save_path)
     elif file_format == 'xlsx':
