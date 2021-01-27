@@ -151,6 +151,11 @@ def goods_data_save_to_table(data, trade_config, file_format):
             'influences': '/'.join(list(goods_info['item'].get('influences').keys())) if goods_info['item'].get('influences') else ''
         }
 
+        pob = [
+            goods_info['item']['name'],
+            goods_info['item']['typeLine'],
+        ]
+
         if 'properties' in goods_info['item']:
             for properties_info in goods_info['item']['properties']:
                 if len(properties_info['values']) > 0:
@@ -161,10 +166,12 @@ def goods_data_save_to_table(data, trade_config, file_format):
         if 'enchantMods' in goods_info['item']:
             has_enchant = True
             temp_goods_info['enchant'] = '\r\n'.join(goods_info['item']['enchantMods'])
+            pob.extend([f'{text} (enchant)' for text in goods_info['item']['enchantMods']])
 
         if 'implicitMods' in goods_info['item']:
             has_implicit = True
             temp_goods_info['implicit'] = '\r\n'.join(goods_info['item']['implicitMods'])
+            pob.extend([f'{text} (implicit)' for text in goods_info['item']['implicitMods']])
 
         if goods_info['item'].get('corrupted'):
             temp_goods_info['corrupted'] = '是'
@@ -173,10 +180,12 @@ def goods_data_save_to_table(data, trade_config, file_format):
 
         if 'explicitMods' in goods_info['item']:
             temp_goods_info['explicit'] = '\r\n'.join(goods_info['item']['explicitMods'])
+            pob.extend(goods_info['item']['explicitMods'])
 
         if 'craftedMods' in goods_info['item']:
             has_crafted = True
             temp_goods_info['crafted'] = '\r\n'.join(goods_info['item']['craftedMods'])
+            pob.extend([f'{text} (crafted)' for text in goods_info['item']['implicitMods']])
 
         # found_mod = []
         for mod_type in ['enchantMods', 'implicitMods', 'explicitMods']:
@@ -209,6 +218,7 @@ def goods_data_save_to_table(data, trade_config, file_format):
                                     temp_goods_info[header] = 0
                                 temp_goods_info[header] = temp_goods_info[header] + int(find[0])
 
+        # 前后缀分开显示
         if data['split_mods']:
             prefix_mod_str_list = []
             suffix_mod_str_list = []
@@ -239,6 +249,7 @@ def goods_data_save_to_table(data, trade_config, file_format):
                 if goods_info['item']['extended'].get(key):
                     temp_goods_info[key] = goods_info['item']['extended'][key]
 
+        temp_goods_info['pob'] = '\r\n'.join(pob)
         contents[filter_name][goods_info['id']] = temp_goods_info
 
     # 表头补充
@@ -265,7 +276,7 @@ def goods_data_save_to_table(data, trade_config, file_format):
         headers[filter_name].append('mods')
     if has_crafted:
         headers[filter_name].append('crafted')
-    headers[filter_name].extend(['influences', 'corrupted', 'currency', 'amount', 'note', 'seller', 'whisper'])
+    headers[filter_name].extend(['influences', 'corrupted', 'currency', 'amount', 'note', 'seller', 'whisper', 'pob'])
 
     save_path = f'result_{filter_name}.{file_format}'
     if file_format == 'csv':
