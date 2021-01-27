@@ -185,7 +185,7 @@ def goods_data_save_to_table(data, trade_config, file_format):
         if 'craftedMods' in goods_info['item']:
             has_crafted = True
             temp_goods_info['crafted'] = '\r\n'.join(goods_info['item']['craftedMods'])
-            pob.extend([f'{text} (crafted)' for text in goods_info['item']['implicitMods']])
+            pob.extend([f'{text} (crafted)' for text in goods_info['item']['craftedMods']])
 
         # found_mod = []
         for mod_type in ['enchantMods', 'implicitMods', 'explicitMods']:
