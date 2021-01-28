@@ -4,6 +4,7 @@ import sys
 import time
 from util.danteng_lib import save_json, load_json, save_to_csv
 from util.SaveToExcel import save_to_excel
+import xlsxwriter
 
 from module import read_app_config, query_goods_data, TradeConfig
 
@@ -104,11 +105,11 @@ def save_result(data, trade_config):
     if data['file_type'] == 'xlsx':
         try:
             goods_data_save_to_table(data, trade_config, 'xlsx')
-        except Exception as e:
+        except xlsxwriter.exceptions.FileCreateError:
             print('')
-            print('★ 保存成Excel时出错，尝试改用CSV输出')
+            print('★ 保存成Excel时出错：如文件正在被打开，请关闭文件重试')
             print('')
-            goods_data_save_to_table(data, trade_config, 'csv')
+            return False
     else:
         goods_data_save_to_table(data, trade_config, 'csv')
 
