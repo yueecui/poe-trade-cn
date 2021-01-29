@@ -49,5 +49,8 @@ class TradeConfig:
             for config in group:
                 yield config
 
+    def __len__(self):
+        return len(self._query_config)
+
     def get_header_config(self):
         return self._header_config

@@ -66,9 +66,7 @@ def find_trade_info(cfg, filter_name_list):
         if file_type != '.xlsx' or os.path.isdir(filter_file_path) or not os.path.exists(filter_file_path):
             continue
 
-        print('===================================================')
-        print(f'=  开始检索过滤组【{file_name}】')
-        print('===================================================')
+        print(f'使用配置文件【{file_name}】开始进行检索...')
 
         trade_config = TradeConfig(filter_file_path)
         if not trade_config.is_ready():

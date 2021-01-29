@@ -9,8 +9,16 @@ def query_goods_data(cfg, trade_config):
     poe_trade = PoeTradeCN(cfg['league'], sleep_time=cfg['sleep_time'], retry_time=cfg['retry_time'],
                      query_number_per_page=cfg['query_number_per_page'])
 
+    index = 0
     for config in trade_config:
+        index += 1
+        print('')
+        print('===================================================')
+        print(f'=  开始查询【{config["名称"]}】（{index}/{len(trade_config)}）')
+        print('===================================================')
         if not config['启用']:
+            print('条件未启用，跳过')
+            print('')
             continue
         filter_json = read_trade_config_json(poe_trade, cfg, config)
         auto_mode = config['模式']

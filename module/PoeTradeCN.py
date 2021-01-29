@@ -69,11 +69,15 @@ class PoeTradeCN:
         #   File "poemarket.py", line 40, in query_data
         # KeyError: 'id'
         # [26068] Failed to execute script poe_market
-        self._log(f'获取到列表[{list_data["id"]}]{auto_combi_text}，总计数据{list_data["total"]}条，正在请求其中的{len(list_data["result"])}条')
-        time.sleep(self._sleep_time)
+        if list_data["total"] == 0:
+            self._log(f'获取到列表[{list_data["id"]}]{auto_combi_text}，此列表没有符合条件的数据')
+        else:
+            self._log(f'获取到列表[{list_data["id"]}]{auto_combi_text}，符合条件的数据{list_data["total"]}条，正在请求其中的{len(list_data["result"])}条')
+            time.sleep(self._sleep_time)
 
-        self._trade_data.update(self._query_item_data(list_data))
-        self._log(f'获取完列表[{list_data["id"]}]{auto_combi_text}，目前总数据{len(self._trade_data)}（新增{len(self._trade_data)-old_length}）')
+            self._trade_data.update(self._query_item_data(list_data))
+        self._log(f'获取完列表[{list_data["id"]}]{auto_combi_text}，目前总数据{len(self._trade_data)}（+{len(self._trade_data)-old_length}）')
+        print('')
 
     # 获取列表获取列表
     def _query_list(self, filter_json):
@@ -100,7 +104,7 @@ class PoeTradeCN:
         item_data = {}
         count = 0
         for i in range(query_times):
-            self._log(f'正在获取列表[{list_data["id"]}]物品数据的第{i+1}组（共{query_times}组）')
+            self._log(f'正在获取列表[{list_data["id"]}]物品数据：{i+1}/{query_times}组')
             query_url = f'{TRADE_API_URL}/{",".join(list_data["result"][i * self._query_number_per_page:(i + 1) * self._query_number_per_page])}?query={list_data["id"]}'
             while True:
                 try:
@@ -148,7 +152,7 @@ class PoeTradeCN:
                     }
                     entry_data = self._post(query_url, query_json, query_name)
                     if len(entry_data["result"]) > MAX_EXCHANGE_NUMBER:
-                        entry_data['result'] = entry_data['result'][:50]
+                        entry_data['result'] = entry_data['result'][:MAX_EXCHANGE_NUMBER]
 
                     self._log(f'获取到列表{query_name}，总计数据{(entry_data["total"])}条，正在请求其中的{len(entry_data["result"])}条')
                     item_data = self._query_item_data(entry_data)
