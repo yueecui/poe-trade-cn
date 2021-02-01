@@ -103,6 +103,7 @@ class PoeTradeCN:
         query_times = math.ceil(len(list_data['result']) / self._query_number_per_page)
         item_data = {}
         count = 0
+        count_500 = 0
         for i in range(query_times):
             self._log(f'正在获取列表[{list_data["id"]}]物品数据：{i+1}/{query_times}组')
             query_url = f'{TRADE_API_URL}/{",".join(list_data["result"][i * self._query_number_per_page:(i + 1) * self._query_number_per_page])}?query={list_data["id"]}'
@@ -113,8 +114,14 @@ class PoeTradeCN:
                         time.sleep(self._sleep_time)
                         break
                     if response_item_data.status_code == 500:
-                        self._log(f'获取列表[{list_data["id"]}]的物品数据时，获取数据失败（{response_item_data.status_code}），跳过！')
-                        break
+                        count_500 += 1
+                        if count_500 < 5:
+                            self._log(f'获取列表[{list_data["id"]}]的物品数据时，获取数据失败（{response_item_data.status_code}）（第{count_500}次），{self._retry_time}秒后重试！')
+                            time.sleep(self._retry_time)
+                            break
+                        else:
+                            self._log(
+                                f'获取列表[{list_data["id"]}]的物品数据时，获取数据失败（{response_item_data.status_code}）（第{count_500}次），超出数量限制，跳过该数据！')
                     else:
                         count += 1
                         self._log(f'获取列表[{list_data["id"]}]的物品数据时，网络出错（{response_item_data.status_code}）（第{count}次），{self._retry_time}秒后重试！')
@@ -126,7 +133,8 @@ class PoeTradeCN:
             if response_item_data.status_code == 500:
                 continue
             for item_info in json.loads(response_item_data.text)['result']:
-                item_data[item_info['id']] = item_info
+                if item_info:
+                    item_data[item_info['id']] = item_info
         return item_data
 
     # 获取地图价格数据

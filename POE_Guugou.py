@@ -135,6 +135,7 @@ def goods_data_save_to_table(data, trade_config, file_format):
     properties_list = []
     has_enchant = False
     has_implicit = False
+    has_fractured = False
     has_crafted = False
     has_dps = False
     for goods_hash, goods_info in data['goods'].items():
@@ -177,8 +178,23 @@ def goods_data_save_to_table(data, trade_config, file_format):
         else:
             temp_goods_info['corrupted'] = '否'
 
+        if goods_info['item'].get('synthesised'):
+            temp_goods_info['synthesised'] = '是'
+        else:
+            temp_goods_info['synthesised'] = '否'
+
+        if 'fracturedMods' in goods_info['item']:
+            has_fractured = True
+            temp_goods_info['fractured'] = '\r\n'.join(goods_info['item']['fracturedMods'])
+            pob.extend(goods_info['item']['fracturedMods'])
+
         if 'explicitMods' in goods_info['item']:
-            temp_goods_info['explicit'] = '\r\n'.join(goods_info['item']['explicitMods'])
+            if 'fracturedMods' in goods_info['item']:
+                temp_mods = [mod+'(锁定)' for mod in goods_info['item']['fracturedMods']]
+            else:
+                temp_mods = []
+            temp_mods.extend(goods_info['item']['explicitMods'])
+            temp_goods_info['explicit'] = '\r\n'.join(temp_mods)
             pob.extend(goods_info['item']['explicitMods'])
 
         if 'craftedMods' in goods_info['item']:
@@ -187,7 +203,7 @@ def goods_data_save_to_table(data, trade_config, file_format):
             pob.extend([f'{text} (crafted)' for text in goods_info['item']['craftedMods']])
 
         # found_mod = []
-        for mod_type in ['enchantMods', 'implicitMods', 'explicitMods']:
+        for mod_type in ['enchantMods', 'implicitMods', 'fracturedMods', 'explicitMods']:
             if mod_type not in goods_info['item']:
                 continue
             for mod_str in goods_info['item'][mod_type]:
@@ -221,25 +237,29 @@ def goods_data_save_to_table(data, trade_config, file_format):
         if data['split_mods']:
             prefix_mod_str_list = []
             suffix_mod_str_list = []
-            if goods_info['item']['extended']['mods'].get('explicit'):
-                for mod_info in goods_info['item']['extended']['mods']['explicit']:
-                    if mod_info['name'] == '' and mod_info['tier'] == '':
-                        continue
-                    if mod_info['tier'][0] == 'P':
-                        prefix_mod_str_list.append(f'{mod_info["name"]}({mod_info["tier"]})')
-                    elif mod_info['tier'][0] == 'S':
-                        suffix_mod_str_list.append(f'{mod_info["name"]}({mod_info["tier"]})')
-                    else:
-                        raise Exception(f'出现预料外的词缀阶级：{mod_info["tier"]}')
-            temp_goods_info['prefix_mods'] = '\r\n'.join(prefix_mod_str_list)
-            temp_goods_info['suffix_mods'] = '\r\n'.join(suffix_mod_str_list)
+            for mod_type in ['fractured', 'explicit']:
+                fix_text = "(锁定)" if mod_type == "fractured" else ""
+                if goods_info['item']['extended']['mods'].get(mod_type):
+                    for mod_info in goods_info['item']['extended']['mods'][mod_type]:
+                        if mod_info['name'] == '' and mod_info['tier'] == '':
+                            continue
+                        if mod_info['tier'][0] == 'P':
+                            prefix_mod_str_list.append(f'{mod_info["name"]}({mod_info["tier"]}){fix_text}')
+                        elif mod_info['tier'][0] == 'S':
+                            suffix_mod_str_list.append(f'{mod_info["name"]}({mod_info["tier"]}){fix_text}')
+                        else:
+                            raise Exception(f'出现预料外的词缀阶级：{mod_info["tier"]}')
+                temp_goods_info['prefix_mods'] = '\r\n'.join(prefix_mod_str_list)
+                temp_goods_info['suffix_mods'] = '\r\n'.join(suffix_mod_str_list)
         else:
             mod_str_list = []
-            if goods_info['item']['extended']['mods'].get('explicit'):
-                for mod_info in goods_info['item']['extended']['mods']['explicit']:
-                    if mod_info['name'] == '' and mod_info['tier'] == '':
-                        continue
-                    mod_str_list.append(f'{mod_info["name"]}({mod_info["tier"]})')
+            for mod_type in ['fractured', 'explicit']:
+                fix_text = "(锁定)" if mod_type == "fractured" else ""
+                if goods_info['item']['extended']['mods'].get(mod_type):
+                    for mod_info in goods_info['item']['extended']['mods'][mod_type]:
+                        if mod_info['name'] == '' and mod_info['tier'] == '':
+                            continue
+                        mod_str_list.append(f'{mod_info["name"]}({mod_info["tier"]}){fix_text}')
             temp_goods_info['mods'] = '\r\n'.join(mod_str_list)
 
         if goods_info['item']['extended'].get('dps'):
@@ -273,9 +293,11 @@ def goods_data_save_to_table(data, trade_config, file_format):
         headers[filter_name].extend(['prefix_mods', 'suffix_mods'])
     else:
         headers[filter_name].append('mods')
+    if has_fractured:
+        headers[filter_name].append('fractured')
     if has_crafted:
         headers[filter_name].append('crafted')
-    headers[filter_name].extend(['influences', 'corrupted', 'currency', 'amount', 'note', 'seller', 'whisper', 'pob'])
+    headers[filter_name].extend(['influences', 'corrupted', 'synthesised', 'currency', 'amount', 'note', 'seller', 'whisper', 'pob'])
 
     save_path = f'result_{filter_name}.{file_format}'
     if file_format == 'csv':
