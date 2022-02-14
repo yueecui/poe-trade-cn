@@ -6,8 +6,7 @@ from .PoeTradeCN import PoeTradeCN
 
 
 def query_goods_data(cfg, trade_config):
-    poe_trade = PoeTradeCN(cfg['league'], sleep_time=cfg['sleep_time'], retry_time=cfg['retry_time'],
-                     query_number_per_page=cfg['query_number_per_page'])
+    poe_trade = PoeTradeCN(cfg['league'], **cfg)
 
     index = 0
     for config in trade_config:

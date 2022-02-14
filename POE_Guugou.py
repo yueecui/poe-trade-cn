@@ -89,6 +89,7 @@ def find_trade_info(cfg, filter_name_list):
 
         data = {
             'name': file_name,
+            'POESESSID': cfg['POESESSID'],
             'split_mods': cfg['split_mods'],
             'file_type': cfg['file_type'],
             'goods': goods_data

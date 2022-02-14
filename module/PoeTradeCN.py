@@ -24,6 +24,8 @@ class PoeTradeCN:
     def __init__(self, league_name, **kwargs):
         self._league_name = league_name
         self._trade_data = {}
+        self._cookies = {'POESESSID': '483d3b716faceccc22ea4fd3b6c38375'}
+        # self._cookies = {'POESESSID': kwargs.get('POESESSID')}
         self._sleep_time = int(kwargs.get('sleep_time')) if kwargs.get('sleep_time') else SLEEP_TIME
         self._retry_time = int(kwargs.get('retry_time')) if kwargs.get('retry_time') else RETRY_TIME
         self._query_number_per_page = int(kwargs.get('query_number_per_page')) if kwargs.get('query_number_per_page') else QUERY_NUMBER_PRE_PAGE
@@ -38,8 +40,9 @@ class PoeTradeCN:
                 count = 0
                 while True:
                     try:
-                        response = requests.get(data_url, timeout=30)
+                        response = requests.get(data_url, cookies=self._cookies, timeout=30)
                         if response.status_code == 200:
+                            time.sleep(self._retry_time)
                             break
                         else:
                             count += 1
@@ -84,14 +87,14 @@ class PoeTradeCN:
         count = 0
         while True:
             try:
-                response = requests.post(f'{LIST_API_URL}/{self._league_name}', json=filter_json, timeout=45)
+                response = requests.post(f'{LIST_API_URL}/{self._league_name}', json=filter_json, cookies=self._cookies, timeout=45)
                 if response.status_code == 200:
+                    time.sleep(self._retry_time)
                     break
                 else:
                     count += 1
                     self._log(f'获取列表[{filter_json["name"]}]时，网络出错（{response.status_code}）（第{count}次），{self._retry_time}秒后重试！')
                     time.sleep(self._retry_time)
-                break
             except Exception as e:  # 超时重新下载
                 count += 1
                 self._log(f'获取列表[{filter_json["name"]}]时出错（第{count}次），{self._retry_time}秒后重试！')
@@ -109,7 +112,7 @@ class PoeTradeCN:
             query_url = f'{TRADE_API_URL}/{",".join(list_data["result"][i * self._query_number_per_page:(i + 1) * self._query_number_per_page])}?query={list_data["id"]}'
             while True:
                 try:
-                    response_item_data = requests.get(query_url, timeout=30)
+                    response_item_data = requests.get(query_url, cookies=self._cookies, timeout=30)
                     if response_item_data.status_code == 200:
                         time.sleep(self._sleep_time)
                         break
@@ -172,15 +175,15 @@ class PoeTradeCN:
         count = 0
         while True:
             try:
-                response = requests.post(url, json=json_data, timeout=45)
+                response = requests.post(url, json=json_data, cookies=self._cookies, timeout=45)
                 time.sleep(self._sleep_time)
                 if response.status_code == 200:
+                    time.sleep(self._retry_time)
                     break
                 else:
                     count += 1
                     self._log(f'获取{name}时，网络出错（{response.status_code}）（第{count}次），{self._retry_time}秒后重试！')
                     time.sleep(self._retry_time)
-                break
             except Exception as e:  # 超时重新下载
                 count += 1
                 self._log(f'获取{name}时出错（第{count}次），{self._retry_time}秒后重试！')
@@ -193,15 +196,15 @@ class PoeTradeCN:
         count = 0
         while True:
             try:
-                response = requests.get(url, timeout=45)
+                response = requests.get(url, cookies=self._cookies, timeout=45)
                 time.sleep(self._sleep_time)
                 if response.status_code == 200:
+                    time.sleep(self._retry_time)
                     break
                 else:
                     count += 1
                     self._log(f'获取{url}时，网络出错（{response.status_code}）（第{count}次），{self._retry_time}秒后重试！')
                     time.sleep(self._retry_time)
-                break
             except Exception as e:  # 超时重新下载
                 count += 1
                 self._log(f'获取{url}时出错（第{count}次），{self._retry_time}秒后重试！')

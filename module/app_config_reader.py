@@ -17,6 +17,7 @@ def read_app_config():
 
     result_config = {
         'league': cfg.get('GENERAL', 'league', fallback=''),
+        'POESESSID': cfg.get('GENERAL', 'POESESSID', fallback=''),
         'file_type': cfg.get('GENERAL', 'file_type', fallback='xlsx'),
         'cache_time': cfg.getint('GENERAL', 'cache_minute', fallback=10),
         'split_mods': cfg.getboolean('GENERAL', 'split_mods', fallback=False),
