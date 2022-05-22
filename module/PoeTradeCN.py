@@ -5,6 +5,8 @@ import time
 import os
 import re
 from util.danteng_lib import save_json, load_json
+from config import HEADERS
+from .gbf_chrome_cookies import get_game_cookies_v2
 
 BASE_URL = r'https://poe.game.qq.com/trade/search'
 LIST_API_URL = r'https://poe.game.qq.com/api/trade/search'
@@ -24,9 +26,13 @@ class PoeTradeCN:
     def __init__(self, league_name, **kwargs):
         self._league_name = league_name
         self._trade_data = {}
+        self._cookies = get_game_cookies_v2(kwargs.get('username'))
+        # self._cookies = {'POESESSID': '483d3b716faceccc22ea4fd3b6c38375'}
+        # self._cookies = {'POESESSID': kwargs.get('POESESSID')}
         self._sleep_time = int(kwargs.get('sleep_time')) if kwargs.get('sleep_time') else SLEEP_TIME
         self._retry_time = int(kwargs.get('retry_time')) if kwargs.get('retry_time') else RETRY_TIME
-        self._query_number_per_page = int(kwargs.get('query_number_per_page')) if kwargs.get('query_number_per_page') else QUERY_NUMBER_PRE_PAGE
+        self._query_number_per_page = int(kwargs.get('query_number_per_page')) if kwargs.get(
+            'query_number_per_page') else QUERY_NUMBER_PRE_PAGE
         self.init_data()
 
     # 初始化基本数据
@@ -38,8 +44,9 @@ class PoeTradeCN:
                 count = 0
                 while True:
                     try:
-                        response = requests.get(data_url, timeout=30)
+                        response = requests.get(data_url, cookies=self._cookies, headers=HEADERS, timeout=30)
                         if response.status_code == 200:
+                            time.sleep(self._retry_time)
                             break
                         else:
                             count += 1
@@ -59,7 +66,8 @@ class PoeTradeCN:
     def query_data(self, filter_json):
         list_data = self._query_list(filter_json)
         old_length = len(self._trade_data)
-        auto_combi_text = f'[{filter_json["current"]}/{filter_json["total"]}]({"%.2f%%" % (filter_json["current"]/filter_json["total"]*100)})' if filter_json.get('auto_combi') else ''
+        auto_combi_text = f'[{filter_json["current"]}/{filter_json["total"]}]({"%.2f%%" % (filter_json["current"] / filter_json["total"] * 100)})' if filter_json.get(
+            'auto_combi') else ''
         # TODO
         # Traceback (most recent call last):
         #   File "poe_market.py", line 379, in <module>
@@ -72,11 +80,13 @@ class PoeTradeCN:
         if list_data["total"] == 0:
             self._log(f'获取到列表[{list_data["id"]}]{auto_combi_text}，此列表没有符合条件的数据')
         else:
-            self._log(f'获取到列表[{list_data["id"]}]{auto_combi_text}，符合条件的数据{list_data["total"]}条，正在请求其中的{len(list_data["result"])}条')
+            self._log(
+                f'获取到列表[{list_data["id"]}]{auto_combi_text}，符合条件的数据{list_data["total"]}条，正在请求其中的{len(list_data["result"])}条')
             time.sleep(self._sleep_time)
 
             self._trade_data.update(self._query_item_data(list_data))
-        self._log(f'获取完列表[{list_data["id"]}]{auto_combi_text}，目前总数据{len(self._trade_data)}（+{len(self._trade_data)-old_length}）')
+        self._log(
+            f'获取完列表[{list_data["id"]}]{auto_combi_text}，目前总数据{len(self._trade_data)}（+{len(self._trade_data) - old_length}）')
         print('')
 
     # 获取列表获取列表
@@ -84,14 +94,16 @@ class PoeTradeCN:
         count = 0
         while True:
             try:
-                response = requests.post(f'{LIST_API_URL}/{self._league_name}', json=filter_json, timeout=45)
+                response = requests.post(f'{LIST_API_URL}/{self._league_name}', json=filter_json, cookies=self._cookies,
+                                         headers=HEADERS, timeout=45)
                 if response.status_code == 200:
+                    time.sleep(self._retry_time)
                     break
                 else:
                     count += 1
-                    self._log(f'获取列表[{filter_json["name"]}]时，网络出错（{response.status_code}）（第{count}次），{self._retry_time}秒后重试！')
+                    self._log(
+                        f'获取列表[{filter_json["name"]}]时，网络出错（{response.status_code}）（第{count}次），{self._retry_time}秒后重试！')
                     time.sleep(self._retry_time)
-                break
             except Exception as e:  # 超时重新下载
                 count += 1
                 self._log(f'获取列表[{filter_json["name"]}]时出错（第{count}次），{self._retry_time}秒后重试！')
@@ -105,18 +117,19 @@ class PoeTradeCN:
         count = 0
         count_500 = 0
         for i in range(query_times):
-            self._log(f'正在获取列表[{list_data["id"]}]物品数据：{i+1}/{query_times}组')
+            self._log(f'正在获取列表[{list_data["id"]}]物品数据：{i + 1}/{query_times}组')
             query_url = f'{TRADE_API_URL}/{",".join(list_data["result"][i * self._query_number_per_page:(i + 1) * self._query_number_per_page])}?query={list_data["id"]}'
             while True:
                 try:
-                    response_item_data = requests.get(query_url, timeout=30)
+                    response_item_data = requests.get(query_url, cookies=self._cookies, headers=HEADERS, timeout=30)
                     if response_item_data.status_code == 200:
                         time.sleep(self._sleep_time)
                         break
                     if response_item_data.status_code == 500:
                         count_500 += 1
                         if count_500 < 5:
-                            self._log(f'获取列表[{list_data["id"]}]的物品数据时，获取数据失败（{response_item_data.status_code}）（第{count_500}次），{self._retry_time}秒后重试！')
+                            self._log(
+                                f'获取列表[{list_data["id"]}]的物品数据时，获取数据失败（{response_item_data.status_code}）（第{count_500}次），{self._retry_time}秒后重试！')
                             time.sleep(self._retry_time)
                             break
                         else:
@@ -124,7 +137,8 @@ class PoeTradeCN:
                                 f'获取列表[{list_data["id"]}]的物品数据时，获取数据失败（{response_item_data.status_code}）（第{count_500}次），超出数量限制，跳过该数据！')
                     else:
                         count += 1
-                        self._log(f'获取列表[{list_data["id"]}]的物品数据时，网络出错（{response_item_data.status_code}）（第{count}次），{self._retry_time}秒后重试！')
+                        self._log(
+                            f'获取列表[{list_data["id"]}]的物品数据时，网络出错（{response_item_data.status_code}）（第{count}次），{self._retry_time}秒后重试！')
                         time.sleep(self._retry_time)
                 except Exception as e:  # 超时重新下载
                     count += 1
@@ -172,15 +186,15 @@ class PoeTradeCN:
         count = 0
         while True:
             try:
-                response = requests.post(url, json=json_data, timeout=45)
+                response = requests.post(url, json=json_data, cookies=self._cookies, headers=HEADERS, timeout=45)
                 time.sleep(self._sleep_time)
                 if response.status_code == 200:
+                    time.sleep(self._retry_time)
                     break
                 else:
                     count += 1
                     self._log(f'获取{name}时，网络出错（{response.status_code}）（第{count}次），{self._retry_time}秒后重试！')
                     time.sleep(self._retry_time)
-                break
             except Exception as e:  # 超时重新下载
                 count += 1
                 self._log(f'获取{name}时出错（第{count}次），{self._retry_time}秒后重试！')
@@ -193,15 +207,15 @@ class PoeTradeCN:
         count = 0
         while True:
             try:
-                response = requests.get(url, timeout=45)
+                response = requests.get(url, cookies=self._cookies, headers=HEADERS, timeout=45)
                 time.sleep(self._sleep_time)
                 if response.status_code == 200:
+                    time.sleep(self._retry_time)
                     break
                 else:
                     count += 1
                     self._log(f'获取{url}时，网络出错（{response.status_code}）（第{count}次），{self._retry_time}秒后重试！')
                     time.sleep(self._retry_time)
-                break
             except Exception as e:  # 超时重新下载
                 count += 1
                 self._log(f'获取{url}时出错（第{count}次），{self._retry_time}秒后重试！')
@@ -216,7 +230,8 @@ class PoeTradeCN:
     def query_config_from_code(self, code):
         html = self._get_code_html(code)
 
-        find = re.findall(r'require\(\["main"], function\(\)\{require\(\["trade"], function\(t\)\{    t\((.*?)\);}\);}\);', html)
+        find = re.findall(
+            r'require\(\["main"], function\(\)\{require\(\["trade"], function\(t\)\{\s*?t\((.*?)\);}\);}\);', html)
         if find:
             data_json = json.loads(find[0])
         else:
@@ -239,5 +254,3 @@ def get_data(data_type):
     # if not os.path.exists(data_json_path):
     #     init_data()
     return load_json(data_json_path)
-
-
