@@ -8,8 +8,7 @@ import xlsxwriter
 import re
 import datetime
 import json
-from collections import OrderedDict
-from util.danteng_lib import check_folder
+from .danteng_lib import check_folder
 
 
 def save_to_excel(headers, contents, save_path, header_config={}):
@@ -88,13 +87,13 @@ def save_to_excel(headers, contents, save_path, header_config={}):
                         elif type(value) == list:
                             temp_list = []
                             for temp_item in value:
-                                if type(temp_item) in [dict, OrderedDict]:
+                                if type(temp_item) == dict:
                                     temp_item = json.dumps(temp_item, ensure_ascii=False)
                                 elif type(temp_item) not in [str, int, float, bool]:
                                     temp_item = str(temp_item)
                                 temp_list.append(temp_item)
                             value = str(temp_list)
-                        elif type(value) in [dict, OrderedDict]:
+                        elif type(value) == dict:
                             value = json.dumps(value, ensure_ascii=False)
                         elif value != None and type(value) not in [str, int, float, bool]:
                             value = str(value)
@@ -143,36 +142,6 @@ def sheet_name_fix(sheet_name):
 
 # 范例代码
 
-# 3.5
-# # 生成excel数据
-# headers = OrderedDict([
-#     (sheet_name, ['_index'])
-# ])
-# contents = OrderedDict([
-#     (sheet_name, OrderedDict())
-# ])
-#
-# for one_data_index in range(0, len(data_content)):
-#     one_data = data_content[one_data_index]
-#     if type(one_data) == OrderedDict:
-#         for key in one_data.keys():
-#             if key not in headers[sheet_name]:
-#                 headers[sheet_name].append(key)
-#         contents[sheet_name][one_data_index] = one_data.copy()
-#         contents[sheet_name][one_data_index]['_index'] = one_data_index
-#     else:
-#         key = 'value'
-#         if key not in headers[sheet_name]:
-#             headers[sheet_name].append(key)
-#         contents[sheet_name][one_data_index] = OrderedDict([
-#             ('_index', one_data_index),
-#             ('value', one_data)
-#         ])
-#
-# save_filepath = os.path.join(cfg['OUTPUT']['xlsx_output_path'], sheet_name + '.xlsx')
-# save_to_excel(headers, contents, save_filepath)
-
-
 # 3.7
 # 生成excel数据
 # sheet_name = 'FOO'
@@ -185,7 +154,7 @@ def sheet_name_fix(sheet_name):
 #
 # for one_data_index in range(0, len(data_content)):
 #     one_data = data_content[one_data_index]
-#     if type(one_data) in [dict, OrderedDict]:
+#     if type(one_data) == dict:
 #         for key in one_data.keys():
 #             if key not in headers[sheet_name]:
 #                 headers[sheet_name].append(key)
@@ -195,10 +164,10 @@ def sheet_name_fix(sheet_name):
 #         key = 'value'
 #         if key not in headers[sheet_name]:
 #             headers[sheet_name].append(key)
-#         contents[sheet_name][one_data_index] = OrderedDict([
-#             ('_index', one_data_index),
-#             ('value', one_data)
-#         ])
+#         contents[sheet_name][one_data_index] = {
+#             '_index': one_data_index,
+#             'value': one_data
+#         }
 #
 # save_filepath = os.path.join(cfg['OUTPUT']['xlsx_output_path'], sheet_name + '.xlsx')
 # save_to_excel(headers, contents, save_filepath)

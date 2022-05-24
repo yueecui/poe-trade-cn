@@ -2,8 +2,8 @@ import re
 import os
 import sys
 import time
-from util.danteng_lib import save_json, load_json, save_to_csv
-from util.SaveToExcel import save_to_excel
+from lib.danteng_lib import save_json, load_json, save_to_csv
+from lib.SaveToExcel import save_to_excel
 import xlsxwriter
 
 from module import read_app_config, query_goods_data, TradeConfig

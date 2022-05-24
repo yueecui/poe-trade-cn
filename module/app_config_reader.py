@@ -25,7 +25,7 @@ def read_app_config():
         'filter_path': cfg.get('PATH', 'FILTER', fallback='filter'),
         'cache_path': cfg.get('PATH', 'CACHE', fallback='cache'),
 
-        'sleep_time': cfg.getint('PARAMS', 'sleep_time', fallback=3),
+        'sleep_time': cfg.getfloat('PARAMS', 'sleep_time', fallback=3),
         'retry_time': cfg.getint('PARAMS', 'retry_time', fallback=5),
         'query_number_per_page': cfg.getint('PARAMS', 'query_number_per_page', fallback=10),
     }

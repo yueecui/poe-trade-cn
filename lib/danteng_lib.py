@@ -1,9 +1,7 @@
 import os
 import pickle
 import json
-# import msgpack
-import sys
-from collections import OrderedDict
+import requests
 from time import strftime, localtime
 
 
@@ -12,7 +10,7 @@ def log(string, error_string=''):
     _str = '%s %s' % (strftime("[%H:%M:%S]", localtime()), string)
     try:
         print('%s %s' % (strftime("[%H:%M:%S]", localtime()), string))
-    except:
+    except Exception as e:
         print('%s %s' % (strftime("[%H:%M:%S]", localtime())
                          , error_string if error_string == '' else '字符串中有无法显示的字符。'))
     return _str
@@ -51,11 +49,7 @@ def load_json(path):
     if os.path.exists(path) and os.path.getsize(path) > 0:
         file_text, result = read_file(path)
         if result:
-            version_info = sys.version_info
-            if version_info[0] == 3 and version_info[1] >= 7:
-                return json.loads(file_text)
-            else:
-                return json.loads(file_text, object_pairs_hook=OrderedDict)
+            return json.loads(file_text)
         else:
             return None
     else:
@@ -74,11 +68,7 @@ def load_json(path):
 # def load_msgpack(path):
 #     if os.path.exists(path) and os.path.getsize(path) > 0:
 #         with open(path, 'rb') as f:
-#             version_info = sys.version_info
-#             if version_info[0] == 3 and version_info[1] >= 7:
-#                 return msgpack.unpack(f, parse=False)
-#             else:
-#                 return msgpack.unpack(f, parse=False, object_pairs_hook=OrderedDict)
+#             return msgpack.unpack(f, parse=False)
 #     else:
 #         return None
 
@@ -113,7 +103,7 @@ def check_folder(file_path, mode=0):
 
 def get_root(file_path=None):
     if file_path is None:
-        file_path = '..'
+        file_path = '.'
     me = os.path.abspath(file_path)
     drive, path = os.path.splitdrive(me)
     if not drive:
@@ -204,16 +194,16 @@ def read_7bit_encoded_int(file_handle, max_length=-1):
 # 将目标结构体变为一个结构描述
 def get_struct(obj):
     obj_type = type(obj)
-    if obj_type not in [dict, OrderedDict]:
+    if obj_type != dict:
         return get_type_str(obj_type)
     return get_struct_one_tier(obj)
 
 
 # 获得目标一层的结构描述
 def get_struct_one_tier(obj):
-    temp_struct = new_ordered_dict()
+    temp_struct = {}
     for k, v in obj.items():
-        if type(v) in [dict, OrderedDict]:
+        if type(v) == dict:
             temp_struct[k] = get_struct_one_tier(v)
         else:
             temp_struct[k] = get_type_str(type(v))
@@ -229,7 +219,7 @@ def update_struct(base_struct, plus_struct):
     for k, v in plus_struct.items():
         if k not in base_struct:
             base_struct[k] = v
-        elif type(v) in [dict, OrderedDict]:
+        elif type(v) == dict:
             base_struct[k] = update_struct(base_struct[k], v)
 
     return base_struct
@@ -247,7 +237,7 @@ def save_to_csv(datas, headers, filename):
                 for header in headers:
                     line.append(data[header] if header in data else '')
                 writer.writerow(line)
-        elif type(datas) in [dict, OrderedDict]:
+        elif type(datas) == dict:
             for key in datas:
                 data = datas[key]
                 line = []
@@ -261,10 +251,36 @@ def save_to_csv(datas, headers, filename):
         f.write(temp_file_content)
 
 
-# 根据版本获得一个有序字典
-def new_ordered_dict():
-    version_info = sys.version_info
-    if version_info[0] == 3 and version_info[1] >= 7:
-        return {}
-    else:
-        return OrderedDict()
+# 网络请求
+def get(url, headers=None, params='', cookies=None, timeout=10):
+    response = None
+    for i in range(5):
+        try:
+            if params != '':
+                response = requests.get(url, params=params, headers=headers, cookies=cookies, timeout=timeout)
+            break
+        except:  # 超时重新下载
+            if i == 5:
+                log(f'连续操作超时{i + 1}次，操作失败！')
+                break
+            else:
+                log(f'操作超时，正在重试（第{i + 1}次）...')
+    return response
+
+
+def post(url, headers=None, params='', files='', cookies=None, timeout=10):
+    response = None
+    for i in range(5):
+        try:
+            if params != '':
+                response = requests.post(url, params=params, headers=headers, cookies=cookies, timeout=timeout)
+            elif files != '':
+                response = requests.post(url, files=files, headers=headers, cookies=cookies, timeout=timeout)
+            break
+        except:  # 超时重新下载
+            if i == 5:
+                log(f'连续操作超时{i + 1}次，操作失败！')
+                break
+            else:
+                log(f'操作超时，正在重试（第{i + 1}次）...')
+    return response

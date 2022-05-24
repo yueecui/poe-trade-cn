@@ -1,6 +1,6 @@
 import os
 import xlrd
-from util.danteng_lib import log, new_ordered_dict
+from .danteng_lib import log
 
 
 # 获取一个工作表的数据（旧版，为了兼容以前写的内容而保留）
@@ -8,7 +8,7 @@ def read_sheet_from_xlsx(xls_path, sheet_name='', sheet_index=-1, mode=list()):
     if type(mode) == str:
         mode = [mode]
 
-    result_data = new_ordered_dict()
+    result_data = {}
     if not os.path.exists(xls_path):
         log('[ %s ] 文件不存在！' % xls_path)
         return False
@@ -83,7 +83,7 @@ def read_all_sheets_from_xlsx(xls_path, mode=list()):
     if type(mode) == str:
         mode = [mode]
 
-    result_data = new_ordered_dict()
+    result_data = {}
     if not os.path.exists(xls_path):
         log('[ %s ] 文件不存在！' % xls_path)
         return False
@@ -118,7 +118,7 @@ def read_all_sheets_from_xlsx(xls_path, mode=list()):
 def _read_sheet_data(data_ws, mode=list()):
     temp_header = []  # 读取记录用的header
     result_header = []  # 最终输出时用的header列表，会去掉符号和跳过的内容
-    sheet_data = new_ordered_dict()  # 数据存储用
+    sheet_data = {}  # 数据存储用
     a1_value = ''
 
     # 获取header
@@ -172,7 +172,7 @@ def _read_sheet_data(data_ws, mode=list()):
 
         try:
             # 读取每一行数据
-            row_data = new_ordered_dict()
+            row_data = {}
             for j in range(1, len(temp_header)):
                 header = str(temp_header[j])
                 if len(header) == 0:
@@ -193,10 +193,10 @@ def _read_sheet_data(data_ws, mode=list()):
             sheet_data[data_title].append(row_data)
 
     if 'dict' in mode:
-        result_dict = new_ordered_dict()
+        result_dict = {}
 
         for data_key, data_info in sheet_data.items():
-            temp_dict_item = new_ordered_dict()
+            temp_dict_item = {}
             temp_dict_item[a1_value] = data_key
             temp_dict_item.update(data_info)
             result_dict[data_key] = temp_dict_item
@@ -252,11 +252,11 @@ def read_additional_data_from_excel(excel_path, sheet_list=list(), use_list_type
     if len(sheet_list) == 0:
         sheet_list = list(excel_data.keys())
 
-    result_data = new_ordered_dict()
+    result_data = {}
 
     # 普通数据
     for sheet_name in sheet_list:
-        result_data[sheet_name] = new_ordered_dict()
+        result_data[sheet_name] = {}
         for package_id, package_list_info in excel_data[sheet_name]['data'].items():
             if sheet_name in use_list_type_list:
                 result_data[sheet_name][package_id] = []

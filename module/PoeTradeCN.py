@@ -4,7 +4,7 @@ import math
 import time
 import os
 import re
-from util.danteng_lib import save_json, load_json
+from lib.danteng_lib import save_json, load_json
 from config import HEADERS
 from .gbf_chrome_cookies import get_game_cookies_v2
 
